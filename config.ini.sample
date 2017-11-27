@@ -1,0 +1,8 @@
+[hsbc.com.hk]
+LoginUrl = https://www.ebanking.hsbc.com.hk
+User = username
+Pass1 = memorable_password
+Pass2 = password
+[hsbc.com.hk:Accounts]
+HKD Current
+master_account_no = HKD Current,HKD Savings
