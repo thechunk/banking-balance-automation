@@ -72,8 +72,19 @@ class Hsbc(BankNavigator):
     def check_balance(self):
         bundles = self.driver.find_elements_by_class_name('bundledAccountTitle')
         for i in range(len(bundles)):
-            time.sleep(1)
+            time.sleep(0.5)
             bundles[i].click()
+
+        for account in self.config['accounts']:
+            if 'sub' in account:
+                # TODO: implement bundledAccountContent loop to read each subaccount
+                pass
+            else:
+                parent_elem = self.driver \
+                    .find_element_by_xpath('//span[contains(@class, "itemName") and contains(text(), "{}")]/..'
+                                           .format(account['account']))
+                value_elem = parent_elem.find_element_by_class_name('itemValue')
+                print(value_elem.text)
 
 
 def get_config():
