@@ -1,15 +1,30 @@
-import configparser
+import json
 import time
+import traceback
+from enum import Enum
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
+
+
+class Bank(Enum):
+    hsbchk = "hsbchk"
+
 
 class BankNavigator(object):
     def __init__(self, driver, config):
         self.driver = driver
         self.config = config
+
+    def login_url(self):
+        if self.bank() is Bank.hsbchk.value:
+            return "https://www.ebanking.hsbc.com.hk"
+        else:
+            raise Exception('Bank not supported')
+
+    def bank(self):
+        raise NotImplementedError()
 
     def navigate(self):
         raise NotImplementedError()
@@ -20,14 +35,18 @@ class BankNavigator(object):
     def check_balance(self):
         raise NotImplementedError()
 
+
 class Hsbc(BankNavigator):
+    def bank(self):
+        return 'hsbchk'
+
     def navigate(self):
-        self.driver.get(self.config['hsbc.com.hk']['LoginUrl'])
+        self.driver.get(self.login_url())
         assert 'Personal Internet Banking' in self.driver.title
 
     def login(self):
-        userElem = self.driver.find_element_by_name('u_UserID')
-        userElem.send_keys(self.config['hsbc.com.hk']['User'])
+        user_elem = self.driver.find_element_by_name('u_UserID')
+        user_elem.send_keys(self.config['user'])
 
         # returns only first match
         self.driver \
@@ -35,14 +54,14 @@ class Hsbc(BankNavigator):
             .click()
         assert 'Log on to Internet Banking:' in self.driver.title
 
-        memorableElem = self.driver.find_element_by_id('memorableAnswer')
-        memorableElem.send_keys(self.config['hsbc.com.hk']['Pass1'])
+        memorable_elem = self.driver.find_element_by_id('memorableAnswer')
+        memorable_elem.send_keys(self.config['pass1'])
 
-        smallestElems = self.driver.find_elements_by_class_name('smallestInput')
-        for i in range(len(smallestElems)):
-            smallestElem = smallestElems[i]
-            if ('active' in smallestElem.get_attribute('class')):
-                smallestElem.send_keys(self.config['hsbc.com.hk']['Pass2'][i])
+        smallest_elems = self.driver.find_elements_by_class_name('smallestInput')
+        for i in range(len(smallest_elems)):
+            smallest_elem = smallest_elems[i]
+            if 'active' in smallest_elem.get_attribute('class'):
+                smallest_elem.send_keys(self.config['pass2'][i])
 
         self.driver.find_element_by_class_name('submit_input').click()
         try:
@@ -56,30 +75,46 @@ class Hsbc(BankNavigator):
             time.sleep(1)
             bundles[i].click()
 
+
 def get_config():
-    config = configparser.ConfigParser()
-    config.read('config.ini')
+    with open('config.json') as f:
+        config = json.loads(f.read())
     return config
+
 
 def get_driver():
     driver = webdriver.Firefox()
     return driver
 
+
+def iterate_portals(driver, config):
+    for x in config['portals']:
+        navigator = None
+
+        if x['bank'] == Bank.hsbchk.value:
+            navigator = Hsbc(driver, x)
+        else:
+            raise Exception('Bank not supported')
+
+        try:
+            navigator.navigate()
+            navigator.login()
+            navigator.check_balance()
+        except Exception as e:
+            print("Error: %s" % e)
+            print(traceback.format_exc())
+            driver.quit()
+
+
 def main():
     driver = get_driver()
     config = get_config()
 
-    hsbc = Hsbc(driver, config)
-    try:
-        hsbc.navigate()
-        hsbc.login()
-        hsbc.check_balance()
-    except Exception as e:
-        print("Error: %s" % e)
-        driver.quit()
+    iterate_portals(driver, config)
 
     print("Quitting...")
     # driver.quit()
+
 
 if __name__ == "__main__":
     main()

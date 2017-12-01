@@ -1,0 +1,17 @@
+{
+	"portals": {
+		"hsbc.com.hk": {
+			"loginUrl": "https://www.ebanking.hsbc.com.hk",
+			"user": "",
+			"pass1": "",
+			"pass2": "",
+			"accounts": {
+				"HKD Current": null,
+				"123-456789-000"： [
+					"HKD Current",
+					"HKD Savings"
+				]
+			}
+		}
+	}
+}
