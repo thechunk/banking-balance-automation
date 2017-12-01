@@ -38,7 +38,7 @@ class BankNavigator(object):
 
 class Hsbc(BankNavigator):
     def bank(self):
-        return 'hsbchk'
+        return Bank.hsbchk.value
 
     def navigate(self):
         self.driver.get(self.login_url())
