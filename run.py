@@ -1,6 +1,7 @@
 import json
 import time
 import traceback
+import re
 from enum import Enum
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -34,6 +35,12 @@ class BankNavigator(object):
 
     def check_balance(self):
         raise NotImplementedError()
+
+
+class BankStringMethods(object):
+    @staticmethod
+    def format_balance_values(s):
+        return ''.join(re.findall('[\d.\-]+', s))
 
 
 class Hsbc(BankNavigator):
@@ -75,17 +82,32 @@ class Hsbc(BankNavigator):
             time.sleep(0.5)
             bundles[i].click()
 
+        balances = {}
         for account in self.config['accounts']:
+            account_num = account['account']
+            balances[account_num] = None
+
             if 'sub' in account:
-                # TODO: implement bundledAccountContent loop to read each subaccount
-                pass
+                balances[account_num] = {}
+                parent_elem = self.driver.find_element_by_css_selector('[accountnumber="{}"]'.format(account_num))
+
+                for sub in account['sub']:
+                    child_elem = parent_elem.find_element_by_xpath(
+                        '//span[contains(@class, "itemTitle") and contains(text(), "{}")]/../..'.format(sub)
+                    )
+                    value_elem = child_elem.find_element_by_class_name('itemValue')
+                    balances[account_num][sub] = BankStringMethods.format_balance_values(value_elem.text)
             else:
                 parent_elem = self.driver \
                     .find_element_by_xpath('//span[contains(@class, "itemName") and contains(text(), "{}")]/..'
-                                           .format(account['account']))
+                                           .format(account_num))
+                account_name_elem = parent_elem.find_element_by_css_selector('.itemTitle > .itemTitle')
                 value_elem = parent_elem.find_element_by_class_name('itemValue')
-                print(value_elem.text)
 
+                account_name = account_name_elem.text.splitlines(keepends=False)[-1]
+                balances[account_num] = {account_name: BankStringMethods.format_balance_values(value_elem.text)}
+
+        return balances
 
 def get_config():
     with open('config.json') as f:
@@ -110,7 +132,7 @@ def iterate_portals(driver, config):
         try:
             navigator.navigate()
             navigator.login()
-            navigator.check_balance()
+            print(navigator.check_balance())
         except Exception as e:
             print("Error: %s" % e)
             print(traceback.format_exc())
