@@ -1,15 +1,12 @@
-import json
 import time
-import traceback
 import re
 from enum import Enum
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
 
-class Bank(Enum):
+class BankIdentifier(Enum):
     hsbchk = "hsbchk"
 
 
@@ -19,7 +16,7 @@ class BankNavigator(object):
         self.config = config
 
     def login_url(self):
-        if self.bank() is Bank.hsbchk.value:
+        if self.bank() is BankIdentifier.hsbchk.value:
             return "https://www.ebanking.hsbc.com.hk"
         else:
             raise Exception('Bank not supported')
@@ -37,7 +34,7 @@ class BankNavigator(object):
         raise NotImplementedError()
 
 
-class BankStringMethods(object):
+class _BankStringMethods(object):
     @staticmethod
     def format_balance_values(s):
         return ''.join(re.findall('[\d.\-]+', s))
@@ -45,7 +42,7 @@ class BankStringMethods(object):
 
 class Hsbc(BankNavigator):
     def bank(self):
-        return Bank.hsbchk.value
+        return BankIdentifier.hsbchk.value
 
     def navigate(self):
         self.driver.get(self.login_url())
@@ -55,7 +52,7 @@ class Hsbc(BankNavigator):
         user_elem = self.driver.find_element_by_name('u_UserID')
         user_elem.send_keys(self.config['user'])
 
-        # returns only first match
+        # returns only first button
         self.driver \
             .find_element_by_css_selector('.logonmode > a') \
             .click()
@@ -96,7 +93,7 @@ class Hsbc(BankNavigator):
                         '//span[contains(@class, "itemTitle") and contains(text(), "{}")]/../..'.format(sub)
                     )
                     value_elem = child_elem.find_element_by_class_name('itemValue')
-                    balances[account_num][sub] = BankStringMethods.format_balance_values(value_elem.text)
+                    balances[account_num][sub] = _BankStringMethods.format_balance_values(value_elem.text)
             else:
                 parent_elem = self.driver \
                     .find_element_by_xpath('//span[contains(@class, "itemName") and contains(text(), "{}")]/..'
@@ -105,49 +102,6 @@ class Hsbc(BankNavigator):
                 value_elem = parent_elem.find_element_by_class_name('itemValue')
 
                 account_name = account_name_elem.text.splitlines(keepends=False)[-1]
-                balances[account_num] = {account_name: BankStringMethods.format_balance_values(value_elem.text)}
+                balances[account_num] = {account_name: _BankStringMethods.format_balance_values(value_elem.text)}
 
         return balances
-
-def get_config():
-    with open('config.json') as f:
-        config = json.loads(f.read())
-    return config
-
-
-def get_driver():
-    driver = webdriver.Firefox()
-    return driver
-
-
-def iterate_portals(driver, config):
-    for x in config['portals']:
-        navigator = None
-
-        if x['bank'] == Bank.hsbchk.value:
-            navigator = Hsbc(driver, x)
-        else:
-            raise Exception('Bank not supported')
-
-        try:
-            navigator.navigate()
-            navigator.login()
-            print(navigator.check_balance())
-        except Exception as e:
-            print("Error: %s" % e)
-            print(traceback.format_exc())
-            driver.quit()
-
-
-def main():
-    driver = get_driver()
-    config = get_config()
-
-    iterate_portals(driver, config)
-
-    print("Quitting...")
-    # driver.quit()
-
-
-if __name__ == "__main__":
-    main()
