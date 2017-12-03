@@ -1,6 +1,7 @@
 import json
 import traceback
 from bank.navigator import BankIdentifier, Hsbc
+from connectors.googlesheets import GoogleSheetsConnector
 from selenium import webdriver
 
 def get_config():
@@ -34,6 +35,11 @@ def iterate_portals(driver, config):
 
 
 def main():
+    gs = GoogleSheetsConnector()
+    print(gs.read_range('Sheet1!A1:C'))
+    print(gs.append_data())
+    return
+
     driver = get_driver()
     config = get_config()
 
