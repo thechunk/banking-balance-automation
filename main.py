@@ -50,7 +50,9 @@ def main():
     if gs.initialized():
         gs.append_row(values)
     else:
-        gs.append_rows(RawDataProcessor.banks_to_headers(balance).append(values))
+        rows = RawDataProcessor.banks_to_headers(balance)
+        rows.append(values)
+        gs.append_rows(rows)
 
     print("Quitting...")
     driver.quit()

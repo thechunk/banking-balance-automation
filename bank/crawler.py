@@ -69,14 +69,14 @@ class Hsbc(BankCrawler):
 
         self.driver.find_element_by_class_name('submit_input').click()
         try:
-            WebDriverWait(self.driver, 10).until(expected_conditions.presence_of_element_located((By.ID, 'Manage')))
+            WebDriverWait(self.driver, 20).until(expected_conditions.presence_of_element_located((By.ID, 'Manage')))
         finally:
             assert 'My banking' in self.driver.title
 
     def check_balance(self):
         bundles = self.driver.find_elements_by_class_name('bundledAccountTitle')
         for i in range(len(bundles)):
-            time.sleep(0.5)
+            time.sleep(1.0)
             bundles[i].click()
 
         balances = {}
