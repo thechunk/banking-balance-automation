@@ -10,7 +10,7 @@ class BankIdentifier(Enum):
     hsbchk = "hsbchk"
 
 
-class BankNavigator(object):
+class BankCrawler(object):
     def __init__(self, driver, config):
         self.driver = driver
         self.config = config
@@ -40,7 +40,7 @@ class _BankStringMethods(object):
         return ''.join(re.findall('[\d.\-]+', s))
 
 
-class Hsbc(BankNavigator):
+class Hsbc(BankCrawler):
     def bank(self):
         return BankIdentifier.hsbchk.value
 

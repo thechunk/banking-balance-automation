@@ -1,4 +1,3 @@
-from __future__ import print_function
 import httplib2
 import os
 
@@ -56,13 +55,20 @@ class GoogleSheetsConnector(object):
         values = result.get('values', [])
         return values
 
-    def append_data(self):
-        range_name = 'Sheet1!A:F'
+    def initialized(self):
+        return self.read_range('Sheet1!A2') != []
+
+    def append_rows(self, rows):
+        range_name = 'Sheet1!A1:F1'
         body = {
+            'majorDimension': 'ROWS',
             'range': range_name,
-            'values': [
-                1, 2, 3, 4, 5
-            ]
+            'values': rows
         }
         self.service.spreadsheets().values().append(spreadsheetId=self.SPREADSHEET_ID, range=range_name,
-                                                    insertDataOption='INSERT_ROWS', body=body)
+                                                    insertDataOption='INSERT_ROWS',
+                                                    valueInputOption='USER_ENTERED',
+                                                    body=body).execute()
+
+    def append_row(self, values):
+        self.append_rows([values])
