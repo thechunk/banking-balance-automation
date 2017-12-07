@@ -1,5 +1,5 @@
 import unittest
-from data.processing import RawDataProcessor
+from data.processing import banks_to_headers, banks_to_rows
 from data.processing import DataInconsistencyError
 
 class Processing(unittest.TestCase):
@@ -14,22 +14,19 @@ class Processing(unittest.TestCase):
         }
 
     def test_generate_headers(self):
-        headers = RawDataProcessor.banks_to_headers(self.data)
+        headers = banks_to_headers(self.data)
         self.assertListEqual(headers, [
-            ['', '12345', '67890', '67890'],
-            ['Date', 'HKD Current', 'HKD Current', 'HKD Savings']
+            ['12345', '67890', '67890'],
+            ['HKD Current', 'HKD Current', 'HKD Savings']
         ])
 
     def test_generate_row(self):
-        row = RawDataProcessor.banks_to_rows(self.data)
-        self.assertListEqual(row, ['', '123.00', '678.00', '901.00'])
+        row = banks_to_rows(self.data)
+        self.assertListEqual(row, ['123.00', '678.00', '901.00'])
 
     def test_generate_row_inconsistent(self):
         with self.assertRaises(DataInconsistencyError):
-            RawDataProcessor.banks_to_rows(self.inconsistent_data)
-
-    def test_true(self):
-        self.assertTrue(True)
+            banks_to_rows(self.inconsistent_data)
 
 if __name__ == '__main__':
     unittest.main()

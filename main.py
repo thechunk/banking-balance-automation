@@ -2,7 +2,7 @@ import json
 import traceback
 from bank.crawler import BankIdentifier, Hsbc
 from connectors.googlesheets import GoogleSheetsConnector
-from data.processing import RawDataProcessor
+from data.bridge import AccountSummarySheetBridge
 from selenium import webdriver
 
 def get_config():
@@ -17,27 +17,28 @@ def get_driver():
 
 
 def iterate_portals(driver, config):
-    balances = {} # TODO: return balances in generalized format
+    balances = {}
 
     for x in config['portals']:
         navigator = None
+        key = x['bank']
 
-        if x['bank'] == BankIdentifier.hsbchk.value:
+        if key == BankIdentifier.hsbchk.value:
             navigator = Hsbc(driver, x)
         else:
             raise Exception('Bank not supported')
 
-        balance = None
+        balances[key] = None
         try:
             navigator.navigate()
             navigator.login()
-            balance = navigator.check_balance()
+            balances[key] = navigator.check_balance()
         except Exception as e:
             print("Error: %s" % e)
             print(traceback.format_exc())
             driver.quit()
 
-        return balance
+    return balances
 
 def main():
     driver = get_driver()
@@ -46,13 +47,9 @@ def main():
     balance = iterate_portals(driver, config)
 
     gs = GoogleSheetsConnector()
-    values = RawDataProcessor.banks_to_rows(balance)
-    if gs.initialized():
-        gs.append_row(values)
-    else:
-        rows = RawDataProcessor.banks_to_headers(balance)
-        rows.append(values)
-        gs.append_rows(rows)
+    as_bridge = AccountSummarySheetBridge(gs)
+    as_bridge.add_values(balance['hsbchk']) #TODO: allow add_values for generalized bank keys
+    as_bridge.commit_rows()
 
     print("Quitting...")
     driver.quit()
